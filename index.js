@@ -1,44 +1,46 @@
 const express = require("express");
-const axios = require("axios");
 const bodyParser = require("body-parser");
+const cors = require("cors");
 
 const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
 app.use(bodyParser.json());
 
+// Webhook route
+app.post("/webhook", (req, res) => {
+    try {
+        const intentName = req.body.queryResult.intent.displayName;
+
+        let responseText = "I'm here to help!"; // Default response
+
+        // Custom responses based on intent
+        if (intentName === "Default Welcome Intent") {
+            responseText = "Welcome! How can I assist you today?";
+        } else if (intentName === "Anxiety Help") {
+            responseText = "I understand that dealing with anxiety can be tough. Would you like some breathing exercises or grounding techniques?";
+        } else if (intentName === "Advice Intent") {
+            responseText = "Sure! I can provide guidance on many topics. What advice are you looking for?";
+        } else {
+            responseText = "Sorry, I don't understand that yet. Can you rephrase?";
+        }
+
+        // Send response back to Dialogflow
+        res.json({ fulfillmentText: responseText });
+    } catch (error) {
+        console.error("Webhook error:", error);
+        res.status(500).json({ fulfillmentText: "Something went wrong!" });
+    }
+});
+
+// Health check route
 app.get("/", (req, res) => {
     res.send("SereneAI Webhook is running!");
 });
 
-// Function to fetch a motivational quote
-async function getQuote() {
-    try {
-        let response = await axios.get("https://zenquotes.io/api/random");
-        return response.data[0].q + " - " + response.data[0].a;
-    } catch (error) {
-        return "You are doing great! Keep going. 💪";
-    }
-}
-
-// Webhook endpoint for Dialogflow
-app.post("/webhook", async (req, res) => {
-    let intent = req.body.queryResult.intent.displayName;
-    let output = "I'm here to help!";
-
-    if (intent === "Motivation") {
-        output = await getQuote();
-    } else if (intent === "Feeling Anxious") {
-        output = "I understand. Try deep breathing. Want me to guide you?";
-    } else if (intent === "Breathing Exercise") {
-        output = "Great! Breathe in for 4 seconds… hold for 7… exhale for 8.";
-    } else if (intent === "Self-Care Tips") {
-        output = "Try a short walk, journaling, or drinking water. Small steps matter!";
-    }
-
-    res.json({ fulfillmentText: output });
-});
-
 // Start the server
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`🚀 Server is running on port ${PORT}`);
 });
